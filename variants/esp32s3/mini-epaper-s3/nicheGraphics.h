@@ -98,7 +98,7 @@ void setupNicheGraphics()
     buttons->setTwoWayRockerPressHandlers(
         [inkhud]() {
             bool systemHandlingInput = false;
-            for (const InkHUD::SystemApplet *sa : inkhud->systemApplets) {
+            for (InkHUD::SystemApplet *sa : inkhud->systemApplets) {
                 if (sa->handleInput) {
                     systemHandlingInput = true;
                     break;
@@ -112,7 +112,7 @@ void setupNicheGraphics()
         },
         [inkhud]() {
             bool systemHandlingInput = false;
-            for (const InkHUD::SystemApplet *sa : inkhud->systemApplets) {
+            for (InkHUD::SystemApplet *sa : inkhud->systemApplets) {
                 if (sa->handleInput) {
                     systemHandlingInput = true;
                     break;
