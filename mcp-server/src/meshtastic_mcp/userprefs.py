@@ -393,7 +393,6 @@ def build_testing_profile(
     long_name: str | None = None,
     disable_mqtt: bool = True,
     disable_position: bool = False,
-    enable_ui_log: bool = False,
 ) -> dict[str, Any]:
     """Build a USERPREFS dict for an isolated test-mesh device.
 
@@ -424,10 +423,6 @@ def build_testing_profile(
             traffic never leaks to a public broker.
         disable_position: if True, disables GPS + position broadcasts — useful
             when test devices sit on a bench without antennas.
-        enable_ui_log: if True, stamps `USERPREFS_UI_TEST_LOG=true` so the
-            firmware emits one `Screen: frame N/M name=... reason=...` log
-            line per frame transition. Test-only; off by default because the
-            log is chatty (multiple times per second during UI interaction).
 
     """
     if region not in KNOWN_REGIONS:
@@ -480,9 +475,6 @@ def build_testing_profile(
         prefs["USERPREFS_CONFIG_OWNER_LONG_NAME"] = long_name
     if short_name is not None:
         prefs["USERPREFS_CONFIG_OWNER_SHORT_NAME"] = short_name
-    if enable_ui_log:
-        # Consumed by `#ifdef USERPREFS_UI_TEST_LOG` in src/graphics/Screen.cpp.
-        prefs["USERPREFS_UI_TEST_LOG"] = True
 
     return prefs
 
