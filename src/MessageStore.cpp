@@ -1,5 +1,5 @@
 #include "configuration.h"
-#if HAS_SCREEN
+#if HAS_SCREEN || defined(MESHTASTIC_UI_MSG)
 #include "FSCommon.h"
 #include "MessageStore.h"
 #include "NodeDB.h"
@@ -493,6 +493,31 @@ const char *MessageStore::getText(const StoredMessage &msg)
 {
     // Wrapper around the internal helper
     return getTextFromPool(msg.textOffset);
+}
+
+bool MessageStore::updateAckStatus(uint32_t sender, uint32_t timestamp, AckStatus status)
+{
+    for (auto it = liveMessages.rbegin(); it != liveMessages.rend(); ++it) {
+        if (it->sender == sender && it->timestamp == timestamp) {
+            it->ackStatus = status;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool MessageStore::updateAckStatusIf(uint32_t sender, uint32_t timestamp, AckStatus expected, AckStatus newStatus)
+{
+    for (auto it = liveMessages.rbegin(); it != liveMessages.rend(); ++it) {
+        if (it->sender == sender && it->timestamp == timestamp) {
+            if (it->ackStatus == expected) {
+                it->ackStatus = newStatus;
+                return true;
+            }
+            return false;
+        }
+    }
+    return false;
 }
 
 uint16_t MessageStore::storeText(const char *src, size_t len)

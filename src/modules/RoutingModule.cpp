@@ -38,6 +38,7 @@ bool RoutingModule::handleReceivedProtobuf(const meshtastic_MeshPacket &mp, mesh
         service->handleFromRadio(&mp);
     }
 
+    packetReceived.notifyObservers(&mp);
     return false; // Let others look at this message also if they want
 }
 

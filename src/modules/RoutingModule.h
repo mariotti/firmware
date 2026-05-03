@@ -1,5 +1,6 @@
 #pragma once
 #include "Channels.h"
+#include "Observer.h"
 #include "ProtobufModule.h"
 
 /**
@@ -12,6 +13,9 @@ class RoutingModule : public ProtobufModule<meshtastic_Routing>
      * name is for debugging output
      */
     RoutingModule();
+
+    // Fires for every decoded routing packet received (ACKs, NACKs, etc.).
+    Observable<const meshtastic_MeshPacket *> packetReceived;
 
     virtual void sendAckNak(meshtastic_Routing_Error err, NodeNum to, PacketId idFrom, ChannelIndex chIndex, uint8_t hopLimit = 0,
                             bool ackWantsAck = false);

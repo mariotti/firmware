@@ -1,6 +1,6 @@
 #pragma once
 
-#if HAS_SCREEN
+#if HAS_SCREEN || defined(MESHTASTIC_UI_MSG)
 
 // Disable debug logging entirely on release builds of HELTEC_MESH_SOLAR for space constraints
 #if defined(HELTEC_MESH_SOLAR)
@@ -117,6 +117,11 @@ class MessageStore
 
     // Upgrade boot-relative timestamps once RTC is valid
     void upgradeBootRelativeTimestamps();
+
+    // Update the ACK status of a message identified by sender + timestamp.
+    bool updateAckStatus(uint32_t sender, uint32_t timestamp, AckStatus status);
+    // Same, but only updates if the message's current status equals expected.
+    bool updateAckStatusIf(uint32_t sender, uint32_t timestamp, AckStatus expected, AckStatus newStatus);
 
     // Retrieve the C-string text for a stored message
     static const char *getText(const StoredMessage &msg);
