@@ -4,3 +4,6 @@
 [submodule "meshtestic"]
 	path = meshtestic
 	url = https://github.com/meshtastic/meshTestic
+[submodule "src/graphics/msgui"]
+	path = src/graphics/msgui
+	url = https://github.com/mariotti/meshtastic-msgui.git
