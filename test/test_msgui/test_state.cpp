@@ -130,7 +130,7 @@ void test_state_up_increases_scroll_when_scrollable()
     s.init(0);
     loadNConvs(s, VISIBLE_NODES + 3);
     TEST_ASSERT_EQUAL_size_t(0, s.nodeScroll());
-    s.handleInput(NavEvent::UP, 0, 0, 1000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1000);
     TEST_ASSERT_GREATER_THAN_size_t(0, s.nodeScroll());
 }
 
@@ -139,9 +139,9 @@ void test_state_down_decreases_scroll()
     UIState s;
     s.init(0);
     loadNConvs(s, VISIBLE_NODES + 3);
-    s.handleInput(NavEvent::UP, 0, 0, 1000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1000);
     size_t afterUp = s.nodeScroll();
-    s.handleInput(NavEvent::DOWN, 0, 0, 2000);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 2000);
     TEST_ASSERT_LESS_THAN_size_t(afterUp, s.nodeScroll());
 }
 
@@ -150,7 +150,7 @@ void test_state_up_does_not_scroll_when_no_room()
     UIState s;
     s.init(0);
     loadNConvs(s, VISIBLE_NODES); // exactly one page
-    s.handleInput(NavEvent::UP, 0, 0, 1000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1000);
     TEST_ASSERT_EQUAL_size_t(0, s.nodeScroll());
 }
 
@@ -159,7 +159,7 @@ void test_state_down_does_not_go_below_zero()
     UIState s;
     s.init(0);
     loadNConvs(s, 3);
-    s.handleInput(NavEvent::DOWN, 0, 0, 1000); // already at top
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1000); // already at top
     TEST_ASSERT_EQUAL_size_t(0, s.nodeScroll());
 }
 
@@ -174,7 +174,7 @@ void test_state_user_press_selects_different_row()
     loadNConvs(s, 3);
     // Row 1: touchY within [CONTENT_Y + NODE_ROW_H, CONTENT_Y + 2*NODE_ROW_H)
     uint16_t y = (uint16_t)(CONTENT_Y + NODE_ROW_H + 5);
-    s.handleInput(NavEvent::USER_PRESS, y, 0, 500); // t >= SCROLL_SUPPRESS_MS
+    s.handleInput(NavEvent::USER_PRESS, 0, y, 0, 500); // t >= SCROLL_SUPPRESS_MS
     TEST_ASSERT_EQUAL_size_t(1, s.selectedNode());
     TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView()); // not opened
 }
@@ -186,11 +186,11 @@ void test_state_user_press_twice_opens_conv()
     loadNConvs(s, 3);
     uint16_t y = (uint16_t)(CONTENT_Y + NODE_ROW_H + 5); // row 1
     // First tap: select row 1 (selectedNode starts at 0, so row 1 != selected)
-    s.handleInput(NavEvent::USER_PRESS, y, 0, 500);
+    s.handleInput(NavEvent::USER_PRESS, 0, y, 0, 500);
     TEST_ASSERT_EQUAL_size_t(1, s.selectedNode());
     TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
     // Second tap: row == selectedNode → open
-    s.handleInput(NavEvent::USER_PRESS, y, 0, 1000);
+    s.handleInput(NavEvent::USER_PRESS, 0, y, 0, 1000);
     TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
 }
 
@@ -202,21 +202,21 @@ void test_state_scroll_suppresses_user_press()
 
     // First select row 1 (long before any scroll).
     uint16_t y1 = (uint16_t)(CONTENT_Y + NODE_ROW_H + 5);
-    s.handleInput(NavEvent::USER_PRESS, y1, 0, 500);
+    s.handleInput(NavEvent::USER_PRESS, 0, y1, 0, 500);
     TEST_ASSERT_EQUAL_size_t(1, s.selectedNode());
 
     // Scroll at t=1000.
-    s.handleInput(NavEvent::UP, 0, 0, 1000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1000);
     size_t convScrollAfterUp = s.nodeScroll(); // > 0
 
     // USER_PRESS within suppress window (t=1000 + 399 = 1399) — should do nothing.
     // After scroll, visible row 0 = convScrollAfterUp + 0 (which != selectedNode=1 if scroll > 1).
     uint16_t y0 = (uint16_t)(CONTENT_Y + 5); // visible row 0
-    s.handleInput(NavEvent::USER_PRESS, y0, 0, 1399);
+    s.handleInput(NavEvent::USER_PRESS, 0, y0, 0, 1399);
     TEST_ASSERT_EQUAL_size_t(1, s.selectedNode()); // unchanged
 
     // After suppress window (t=1400), the same tap should go through.
-    s.handleInput(NavEvent::USER_PRESS, y0, 0, 1400);
+    s.handleInput(NavEvent::USER_PRESS, 0, y0, 0, 1400);
     size_t expectedRow = convScrollAfterUp + 0;
     TEST_ASSERT_EQUAL_size_t(expectedRow, s.selectedNode());
 }
@@ -231,7 +231,7 @@ void test_state_select_keyboard_opens_selected_conv()
     s.init(0);
     loadNConvs(s, 3);
     // touchY=0 < CONTENT_Y → keyboard Enter branch → opens selectedNode (0)
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
     TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
     TEST_ASSERT_EQUAL_size_t(0, s.selectedNode());
 }
@@ -243,7 +243,7 @@ void test_state_select_touch_opens_row_by_y()
     loadNConvs(s, 3);
     // Row 2: touchY in [CONTENT_Y + 2*NODE_ROW_H, CONTENT_Y + 3*NODE_ROW_H)
     uint16_t y = (uint16_t)(CONTENT_Y + 2 * NODE_ROW_H + 5);
-    s.handleInput(NavEvent::SELECT, y, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, y, 0, 500);
     TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
     TEST_ASSERT_EQUAL_size_t(2, s.selectedNode());
 }
@@ -254,7 +254,7 @@ void test_state_open_conv_sets_needs_conv_load()
     s.init(0);
     loadNConvs(s, 3);
     s.clearNeedsRender();
-    s.handleInput(NavEvent::SELECT, 0, 0, 500); // keyboard opens conv 0
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500); // keyboard opens conv 0
     TEST_ASSERT_TRUE(s.needsThreadLoad());
 }
 
@@ -267,9 +267,9 @@ void test_state_back_from_conv_view_returns_to_list()
     UIState s;
     s.init(0);
     loadNConvs(s, 3);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
     TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
-    s.handleInput(NavEvent::BACK, 0, 0, 1000);
+    s.handleInput(NavEvent::BACK, 0, 0, 0, 1000);
     TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
 }
 
@@ -278,10 +278,8 @@ void test_state_select_in_conv_view_opens_compose()
     UIState s;
     s.init(0);
     loadNConvs(s, 3);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500); // open conv
-    TEST_ASSERT_FALSE(s.isComposing());
-    s.handleInput(NavEvent::SELECT, 0, 0, 1000); // Enter → compose
-    TEST_ASSERT_TRUE(s.isComposing());
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500); // open conv
+    TEST_ASSERT_TRUE(s.isComposing()); // composing is always active in MSG_THREAD
 }
 
 // ---------------------------------------------------------------------------
@@ -293,10 +291,10 @@ void test_state_anykey_appends_char()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);  // open
-    s.handleInput(NavEvent::SELECT, 0, 0, 1000); // compose
-    s.handleInput(NavEvent::ANYKEY, 0, 'h', 1500);
-    s.handleInput(NavEvent::ANYKEY, 0, 'i', 2000);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);  // open
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 1000); // compose
+    s.handleInput(NavEvent::ANYKEY, 0, 0, 'h', 1500);
+    s.handleInput(NavEvent::ANYKEY, 0, 0, 'i', 2000);
     TEST_ASSERT_EQUAL_size_t(2, s.composeLen());
     TEST_ASSERT_EQUAL_STRING("hi", s.composeBuf());
 }
@@ -306,11 +304,11 @@ void test_state_back_in_compose_deletes_last_char()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
-    s.handleInput(NavEvent::SELECT, 0, 0, 1000);
-    s.handleInput(NavEvent::ANYKEY, 0, 'a', 1500);
-    s.handleInput(NavEvent::ANYKEY, 0, 'b', 2000);
-    s.handleInput(NavEvent::BACK,   0, 0,   2500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 1000);
+    s.handleInput(NavEvent::ANYKEY, 0, 0, 'a', 1500);
+    s.handleInput(NavEvent::ANYKEY, 0, 0, 'b', 2000);
+    s.handleInput(NavEvent::BACK, 0, 0, 0,   2500);
     TEST_ASSERT_EQUAL_size_t(1, s.composeLen());
     TEST_ASSERT_EQUAL_STRING("a", s.composeBuf());
     TEST_ASSERT_TRUE(s.isComposing()); // still composing
@@ -321,12 +319,11 @@ void test_state_back_on_empty_compose_cancels()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
-    s.handleInput(NavEvent::SELECT, 0, 0, 1000);
-    // Buffer is empty; BACK should cancel compose.
-    s.handleInput(NavEvent::BACK, 0, 0, 1500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
+    // Buffer is empty; BACK should return to node list.
+    s.handleInput(NavEvent::BACK, 0, 0, 0, 1500);
     TEST_ASSERT_FALSE(s.isComposing());
-    TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
 }
 
 void test_state_cancel_in_compose_clears_and_closes()
@@ -334,10 +331,10 @@ void test_state_cancel_in_compose_clears_and_closes()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
-    s.handleInput(NavEvent::SELECT, 0, 0, 1000);
-    s.handleInput(NavEvent::ANYKEY, 0, 'x', 1500);
-    s.handleInput(NavEvent::CANCEL, 0, 0,   2000);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 1000);
+    s.handleInput(NavEvent::ANYKEY, 0, 0, 'x', 1500);
+    s.handleInput(NavEvent::CANCEL, 0, 0, 0,   2000);
     TEST_ASSERT_FALSE(s.isComposing());
     TEST_ASSERT_EQUAL_size_t(0, s.composeLen());
 }
@@ -347,10 +344,10 @@ void test_state_select_in_compose_sets_send_request()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
-    s.handleInput(NavEvent::SELECT, 0, 0, 1000);
-    s.handleInput(NavEvent::ANYKEY, 0, 'h', 1500);
-    s.handleInput(NavEvent::SELECT, 0, 0,   2000); // send
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 1000);
+    s.handleInput(NavEvent::ANYKEY, 0, 0, 'h', 1500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0,   2000); // send
     TEST_ASSERT_TRUE(s.hasSendRequest());
     TEST_ASSERT_EQUAL_STRING("h", s.composeBuf()); // still readable until onSendComplete
 }
@@ -360,9 +357,9 @@ void test_state_select_in_empty_compose_does_not_send()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
-    s.handleInput(NavEvent::SELECT, 0, 0, 1000);
-    s.handleInput(NavEvent::SELECT, 0, 0, 1500); // SELECT on empty buf
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 1000);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 1500); // SELECT on empty buf
     TEST_ASSERT_FALSE(s.hasSendRequest());
 }
 
@@ -371,14 +368,13 @@ void test_state_on_send_complete_resets_compose()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
-    s.handleInput(NavEvent::SELECT, 0, 0, 1000);
-    s.handleInput(NavEvent::ANYKEY, 0, 'z', 1500);
-    s.handleInput(NavEvent::SELECT, 0, 0,   2000);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 1000);
+    s.handleInput(NavEvent::ANYKEY, 0, 0, 'z', 1500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0,   2000);
     TEST_ASSERT_TRUE(s.hasSendRequest());
     s.onSendComplete();
     TEST_ASSERT_FALSE(s.hasSendRequest());
-    TEST_ASSERT_FALSE(s.isComposing());
     TEST_ASSERT_EQUAL_size_t(0, s.composeLen());
     TEST_ASSERT_EQUAL_size_t(0, s.msgScroll());
 }
@@ -409,7 +405,7 @@ void test_state_any_input_wakes_from_sleep()
     s.init(0);
     loadNConvs(s, 3);
     s.goSleep();
-    s.handleInput(NavEvent::UP, 0, 0, 1000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1000);
     TEST_ASSERT_FALSE(s.isSleeping());
     TEST_ASSERT_TRUE(s.needsRender());
     // The UP should not have navigated — wake consumes the event.
@@ -440,7 +436,7 @@ void test_state_message_received_in_conv_view_also_sets_conv_load()
     UIState s;
     s.init(0);
     loadNConvs(s, 2);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500); // open conv 0
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500); // open conv 0
     TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
     s.clearNeedsRender();
     s.onMessageReceived(1000);
@@ -459,11 +455,11 @@ void test_state_cooldown_suppresses_user_press()
     s.onRenderDone(500); // cooldown ends at 500 + RENDER_COOLDOWN_MS = 1500
     // USER_PRESS at t=1000 is within cooldown → ignored.
     uint16_t y = (uint16_t)(CONTENT_Y + NODE_ROW_H + 5); // row 1
-    s.handleInput(NavEvent::USER_PRESS, y, 0, 1000);
+    s.handleInput(NavEvent::USER_PRESS, 0, y, 0, 1000);
     TEST_ASSERT_EQUAL_size_t(0, s.selectedNode()); // unchanged
     // USER_PRESS at t=1500 (cooldown boundary, not yet past) — still blocked.
     // t=1501 should go through.
-    s.handleInput(NavEvent::USER_PRESS, y, 0, 1501);
+    s.handleInput(NavEvent::USER_PRESS, 0, y, 0, 1501);
     TEST_ASSERT_EQUAL_size_t(1, s.selectedNode()); // now selected
 }
 
@@ -476,7 +472,7 @@ void test_state_swipe_left_opens_system_menu()
     UIState s;
     s.init(0);
     loadNConvs(s, 2);
-    s.handleInput(NavEvent::LEFT, 0, 0, 500);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 500);
     TEST_ASSERT_EQUAL_INT((int)View::SETTINGS, (int)s.currentView());
     TEST_ASSERT_EQUAL_size_t(0, s.menuSelection()); // always resets to first button
 }
@@ -486,7 +482,7 @@ void test_state_swipe_right_opens_system_menu()
     UIState s;
     s.init(0);
     loadNConvs(s, 2);
-    s.handleInput(NavEvent::RIGHT, 0, 0, 500);
+    s.handleInput(NavEvent::RIGHT, 0, 0, 0, 500);
     TEST_ASSERT_EQUAL_INT((int)View::SETTINGS, (int)s.currentView());
 }
 
@@ -495,9 +491,9 @@ void test_state_swipe_from_system_menu_returns_to_list()
     UIState s;
     s.init(0);
     loadNConvs(s, 2);
-    s.handleInput(NavEvent::LEFT, 0, 0, 500);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 500);
     TEST_ASSERT_EQUAL_INT((int)View::SETTINGS, (int)s.currentView());
-    s.handleInput(NavEvent::LEFT, 0, 0, 1000);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 1000);
     TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
 }
 
@@ -506,8 +502,8 @@ void test_state_back_from_system_menu_returns_to_list()
     UIState s;
     s.init(0);
     loadNConvs(s, 2);
-    s.handleInput(NavEvent::LEFT, 0, 0, 500);
-    s.handleInput(NavEvent::BACK, 0, 0, 1000);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 500);
+    s.handleInput(NavEvent::BACK, 0, 0, 0, 1000);
     TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
 }
 
@@ -516,9 +512,9 @@ void test_state_swipe_from_conv_view_returns_to_list()
     UIState s;
     s.init(0);
     loadNConvs(s, 2);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500); // open conv
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500); // open conv
     TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
-    s.handleInput(NavEvent::LEFT, 0, 0, 1000);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 1000);
     TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
 }
 
@@ -531,15 +527,19 @@ void test_state_system_menu_down_moves_selection()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::LEFT, 0, 0, 500);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 500);
     TEST_ASSERT_EQUAL_size_t(0, s.menuSelection());
-    s.handleInput(NavEvent::DOWN, 0, 0, 1000);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1000);
     TEST_ASSERT_EQUAL_size_t(1, s.menuSelection());
-    s.handleInput(NavEvent::DOWN, 0, 0, 1500);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1500);
     TEST_ASSERT_EQUAL_size_t(2, s.menuSelection());
-    // At last item — DOWN should not go further
-    s.handleInput(NavEvent::DOWN, 0, 0, 2000);
-    TEST_ASSERT_EQUAL_size_t(2, s.menuSelection());
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 2000);
+    TEST_ASSERT_EQUAL_size_t(3, s.menuSelection());
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 2500);
+    TEST_ASSERT_EQUAL_size_t(4, s.menuSelection());
+    // At last item (SYS_MENU_ITEMS-1=4) — DOWN should not go further
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 3000);
+    TEST_ASSERT_EQUAL_size_t(4, s.menuSelection());
 }
 
 void test_state_system_menu_up_moves_selection()
@@ -547,15 +547,15 @@ void test_state_system_menu_up_moves_selection()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::LEFT, 0, 0, 500);
-    s.handleInput(NavEvent::DOWN, 0, 0, 1000);
-    s.handleInput(NavEvent::DOWN, 0, 0, 1500);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 500);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1000);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1500);
     TEST_ASSERT_EQUAL_size_t(2, s.menuSelection());
-    s.handleInput(NavEvent::UP, 0, 0, 2000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 2000);
     TEST_ASSERT_EQUAL_size_t(1, s.menuSelection());
     // At first item — UP should not go further
-    s.handleInput(NavEvent::UP, 0, 0, 2500);
-    s.handleInput(NavEvent::UP, 0, 0, 3000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 2500);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 3000);
     TEST_ASSERT_EQUAL_size_t(0, s.menuSelection());
 }
 
@@ -564,8 +564,8 @@ void test_state_system_menu_select_sleep()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::LEFT, 0, 0, 500);   // open menu, Sleep selected (0)
-    s.handleInput(NavEvent::SELECT, 0, 0, 1000);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 500);   // open menu, Sleep selected (0)
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 1000);
     TEST_ASSERT_EQUAL_INT((int)PowerAction::SLEEP, (int)s.pendingPowerAction());
 }
 
@@ -574,9 +574,9 @@ void test_state_system_menu_select_restart()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::LEFT, 0, 0, 500);
-    s.handleInput(NavEvent::DOWN, 0, 0, 1000);  // Restart (1)
-    s.handleInput(NavEvent::SELECT, 0, 0, 1500);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 500);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1000);  // Restart (1)
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 1500);
     TEST_ASSERT_EQUAL_INT((int)PowerAction::RESTART, (int)s.pendingPowerAction());
 }
 
@@ -585,25 +585,23 @@ void test_state_system_menu_select_shutdown()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::LEFT, 0, 0, 500);
-    s.handleInput(NavEvent::DOWN, 0, 0, 1000);  // Restart
-    s.handleInput(NavEvent::DOWN, 0, 0, 1500);  // Shutdown (2)
-    s.handleInput(NavEvent::SELECT, 0, 0, 2000);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 500);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1000);  // Restart
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1500);  // Shutdown (2)
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 2000);
     TEST_ASSERT_EQUAL_INT((int)PowerAction::SHUTDOWN, (int)s.pendingPowerAction());
 }
 
-void test_state_system_menu_two_tap_activates()
+void test_state_system_menu_user_press_activates()
 {
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::LEFT, 0, 0, 500); // open menu
-    // Tap Restart row (button 1)
-    uint16_t y1 = (uint16_t)(CONTENT_Y + NODE_ROW_H + 5);
-    s.handleInput(NavEvent::USER_PRESS, y1, 0, 1000); // selects Restart
-    TEST_ASSERT_EQUAL_size_t(1, s.menuSelection());
-    TEST_ASSERT_EQUAL_INT((int)PowerAction::NONE, (int)s.pendingPowerAction()); // not fired yet
-    s.handleInput(NavEvent::USER_PRESS, y1, 0, 1500); // activates Restart
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 500); // open menu
+    // Touch Restart button: grid col=1 (x in [SYS_CELL_W, 2*SYS_CELL_W)), row=0
+    uint16_t x = (uint16_t)(SYS_CELL_W + SYS_CELL_W / 2); // col 1, centre
+    uint16_t y = (uint16_t)(CONTENT_Y + VIEW_HEADER_H + 10); // row 0
+    s.handleInput(NavEvent::USER_PRESS, x, y, 0, 1000);
     TEST_ASSERT_EQUAL_INT((int)PowerAction::RESTART, (int)s.pendingPowerAction());
 }
 
@@ -613,12 +611,12 @@ void test_state_system_menu_resets_selection_on_entry()
     s.init(0);
     loadNConvs(s, 1);
     // Enter menu, move to Shutdown, leave, re-enter — selection must reset.
-    s.handleInput(NavEvent::LEFT, 0, 0, 500);
-    s.handleInput(NavEvent::DOWN, 0, 0, 1000);
-    s.handleInput(NavEvent::DOWN, 0, 0, 1500);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 500);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1000);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1500);
     TEST_ASSERT_EQUAL_size_t(2, s.menuSelection());
-    s.handleInput(NavEvent::BACK, 0, 0, 2000);
-    s.handleInput(NavEvent::LEFT, 0, 0, 2500);
+    s.handleInput(NavEvent::BACK, 0, 0, 0, 2000);
+    s.handleInput(NavEvent::LEFT, 0, 0, 0, 2500);
     TEST_ASSERT_EQUAL_size_t(0, s.menuSelection()); // back to Sleep
 }
 
@@ -631,12 +629,12 @@ void test_state_msg_scroll_up_moves_toward_older()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500); // open conv
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500); // open conv
     // Feed in enough messages to scroll
     ConvMsg msgs[5]{};
     s.applyThreadMsgs(msgs, 5);
     TEST_ASSERT_EQUAL_size_t(0, s.msgScroll());
-    s.handleInput(NavEvent::UP, 0, 0, 1000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1000);
     TEST_ASSERT_EQUAL_size_t(1, s.msgScroll());
 }
 
@@ -645,13 +643,13 @@ void test_state_msg_scroll_down_moves_toward_newer()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
     ConvMsg msgs[5]{};
     s.applyThreadMsgs(msgs, 5);
-    s.handleInput(NavEvent::UP, 0, 0, 1000);
-    s.handleInput(NavEvent::UP, 0, 0, 1500);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1500);
     TEST_ASSERT_EQUAL_size_t(2, s.msgScroll());
-    s.handleInput(NavEvent::DOWN, 0, 0, 2000);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 2000);
     TEST_ASSERT_EQUAL_size_t(1, s.msgScroll());
 }
 
@@ -660,10 +658,10 @@ void test_state_msg_scroll_does_not_go_below_zero()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
     ConvMsg msgs[3]{};
     s.applyThreadMsgs(msgs, 3);
-    s.handleInput(NavEvent::DOWN, 0, 0, 1000);
+    s.handleInput(NavEvent::DOWN, 0, 0, 0, 1000);
     TEST_ASSERT_EQUAL_size_t(0, s.msgScroll());
 }
 
@@ -672,13 +670,13 @@ void test_state_msg_scroll_does_not_exceed_msg_count()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
     ConvMsg msgs[3]{};
     s.applyThreadMsgs(msgs, 3);
     // Max scroll is msgCount - 1 = 2
-    s.handleInput(NavEvent::UP, 0, 0, 1000);
-    s.handleInput(NavEvent::UP, 0, 0, 1500);
-    s.handleInput(NavEvent::UP, 0, 0, 2000); // should clamp
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1500);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 2000); // should clamp
     TEST_ASSERT_EQUAL_size_t(2, s.msgScroll());
 }
 
@@ -687,11 +685,11 @@ void test_state_send_resets_msg_scroll_to_bottom()
     UIState s;
     s.init(0);
     loadNConvs(s, 1);
-    s.handleInput(NavEvent::SELECT, 0, 0, 500);
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500);
     ConvMsg msgs[4]{};
     s.applyThreadMsgs(msgs, 4);
-    s.handleInput(NavEvent::UP, 0, 0, 1000);
-    s.handleInput(NavEvent::UP, 0, 0, 1500);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1000);
+    s.handleInput(NavEvent::UP, 0, 0, 0, 1500);
     TEST_ASSERT_GREATER_THAN_size_t(0, s.msgScroll());
     s.onSendComplete();
     TEST_ASSERT_EQUAL_size_t(0, s.msgScroll()); // back to newest
@@ -727,7 +725,7 @@ void test_state_open_conv_clears_unread()
     loadNConvs(s, 3);
     s.markNodeUnread(0); // selectedNode starts at 0
     TEST_ASSERT_EQUAL_size_t(1, s.unreadCount());
-    s.handleInput(NavEvent::SELECT, 0, 0, 500); // keyboard Enter opens conv 0
+    s.handleInput(NavEvent::SELECT, 0, 0, 0, 500); // keyboard Enter opens conv 0
     TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
     TEST_ASSERT_EQUAL_size_t(0, s.unreadCount());
 }
@@ -811,7 +809,7 @@ static void run_state_tests()
     RUN_TEST(test_state_system_menu_select_sleep);
     RUN_TEST(test_state_system_menu_select_restart);
     RUN_TEST(test_state_system_menu_select_shutdown);
-    RUN_TEST(test_state_system_menu_two_tap_activates);
+    RUN_TEST(test_state_system_menu_user_press_activates);
     RUN_TEST(test_state_system_menu_resets_selection_on_entry);
 
     RUN_TEST(test_state_msg_scroll_up_moves_toward_older);
