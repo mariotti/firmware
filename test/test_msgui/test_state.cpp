@@ -18,9 +18,9 @@ void tearDown() {}
 static constexpr uint32_t PEER1 = 0xBBBB0001;
 static constexpr uint32_t PEER2 = 0xBBBB0002;
 
-static ConvEntry makeConv(bool isChannel, uint8_t ch, uint32_t peer)
+static NodeEntry makeConv(bool isChannel, uint8_t ch, uint32_t peer)
 {
-    ConvEntry e{};
+    NodeEntry e{};
     e.isChannel    = isChannel;
     e.channelIndex = ch;
     e.peerNum      = peer;
@@ -31,10 +31,10 @@ static ConvEntry makeConv(bool isChannel, uint8_t ch, uint32_t peer)
 
 static void loadNConvs(UIState &s, size_t n)
 {
-    static ConvEntry buf[UIState::MAX_CONVS];
-    for (size_t i = 0; i < n && i < UIState::MAX_CONVS; i++)
+    static NodeEntry buf[UIState::MAX_NODES];
+    for (size_t i = 0; i < n && i < UIState::MAX_NODES; i++)
         buf[i] = makeConv(true, (uint8_t)i, 0);
-    s.applyConvList(buf, n);
+    s.applyNodeList(buf, n);
 }
 
 // ---------------------------------------------------------------------------
@@ -45,7 +45,7 @@ void test_state_initial_view_is_conv_list()
 {
     UIState s;
     s.init(0);
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_LIST, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
 }
 
 void test_state_initial_needs_render()
@@ -63,7 +63,7 @@ void test_state_not_sleeping_initially()
 }
 
 // ---------------------------------------------------------------------------
-// applyConvList
+// applyNodeList
 // ---------------------------------------------------------------------------
 
 void test_state_apply_conv_list_stores_count()
@@ -71,7 +71,7 @@ void test_state_apply_conv_list_stores_count()
     UIState s;
     s.init(0);
     loadNConvs(s, 3);
-    TEST_ASSERT_EQUAL_size_t(3, s.convCount());
+    TEST_ASSERT_EQUAL_size_t(3, s.nodeCount());
 }
 
 void test_state_apply_conv_list_reanchor_preserves_selected_peer()
@@ -82,20 +82,20 @@ void test_state_apply_conv_list_reanchor_preserves_selected_peer()
     UIState s;
     s.init(0);
 
-    ConvEntry list1[2];
+    NodeEntry list1[2];
     list1[0] = makeConv(false, 0, PEER1);
-    s.applyConvList(list1, 1);
-    TEST_ASSERT_EQUAL_size_t(0, s.selectedConv()); // PEER1 at index 0
+    s.applyNodeList(list1, 1);
+    TEST_ASSERT_EQUAL_size_t(0, s.selectedNode()); // PEER1 at index 0
 
     // PEER2 arrives, list reorders: PEER2 first, PEER1 second.
-    ConvEntry list2[2];
+    NodeEntry list2[2];
     list2[0] = makeConv(false, 0, PEER2);
     list2[1] = makeConv(false, 0, PEER1);
-    s.applyConvList(list2, 2);
+    s.applyNodeList(list2, 2);
 
-    // selectedConv must still point to PEER1 (now at index 1).
-    TEST_ASSERT_EQUAL_size_t(1, s.selectedConv());
-    TEST_ASSERT_EQUAL_UINT32(PEER1, s.convList()[s.selectedConv()].peerNum);
+    // selectedNode must still point to PEER1 (now at index 1).
+    TEST_ASSERT_EQUAL_size_t(1, s.selectedNode());
+    TEST_ASSERT_EQUAL_UINT32(PEER1, s.nodeList()[s.selectedNode()].peerNum);
 }
 
 void test_state_apply_conv_list_reanchor_preserves_channel()
@@ -103,21 +103,21 @@ void test_state_apply_conv_list_reanchor_preserves_channel()
     UIState s;
     s.init(0);
 
-    ConvEntry list1[2];
+    NodeEntry list1[2];
     list1[0] = makeConv(true, 0, 0); // ch0
-    s.applyConvList(list1, 1);
-    TEST_ASSERT_EQUAL_size_t(0, s.selectedConv()); // ch0 at index 0
+    s.applyNodeList(list1, 1);
+    TEST_ASSERT_EQUAL_size_t(0, s.selectedNode()); // ch0 at index 0
 
     // A peer DM arrives and gets prepended.
-    ConvEntry list2[2];
+    NodeEntry list2[2];
     list2[0] = makeConv(false, 0, PEER1);
     list2[1] = makeConv(true,  0, 0);
-    s.applyConvList(list2, 2);
+    s.applyNodeList(list2, 2);
 
     // Still on ch0, now at index 1.
-    TEST_ASSERT_EQUAL_size_t(1, s.selectedConv());
-    TEST_ASSERT_TRUE(s.convList()[s.selectedConv()].isChannel);
-    TEST_ASSERT_EQUAL_UINT8(0, s.convList()[s.selectedConv()].channelIndex);
+    TEST_ASSERT_EQUAL_size_t(1, s.selectedNode());
+    TEST_ASSERT_TRUE(s.nodeList()[s.selectedNode()].isChannel);
+    TEST_ASSERT_EQUAL_UINT8(0, s.nodeList()[s.selectedNode()].channelIndex);
 }
 
 // ---------------------------------------------------------------------------
@@ -128,30 +128,30 @@ void test_state_up_increases_scroll_when_scrollable()
 {
     UIState s;
     s.init(0);
-    loadNConvs(s, VISIBLE_CONVS + 3);
-    TEST_ASSERT_EQUAL_size_t(0, s.convScroll());
+    loadNConvs(s, VISIBLE_NODES + 3);
+    TEST_ASSERT_EQUAL_size_t(0, s.nodeScroll());
     s.handleInput(NavEvent::UP, 0, 0, 1000);
-    TEST_ASSERT_GREATER_THAN_size_t(0, s.convScroll());
+    TEST_ASSERT_GREATER_THAN_size_t(0, s.nodeScroll());
 }
 
 void test_state_down_decreases_scroll()
 {
     UIState s;
     s.init(0);
-    loadNConvs(s, VISIBLE_CONVS + 3);
+    loadNConvs(s, VISIBLE_NODES + 3);
     s.handleInput(NavEvent::UP, 0, 0, 1000);
-    size_t afterUp = s.convScroll();
+    size_t afterUp = s.nodeScroll();
     s.handleInput(NavEvent::DOWN, 0, 0, 2000);
-    TEST_ASSERT_LESS_THAN_size_t(afterUp, s.convScroll());
+    TEST_ASSERT_LESS_THAN_size_t(afterUp, s.nodeScroll());
 }
 
 void test_state_up_does_not_scroll_when_no_room()
 {
     UIState s;
     s.init(0);
-    loadNConvs(s, VISIBLE_CONVS); // exactly one page
+    loadNConvs(s, VISIBLE_NODES); // exactly one page
     s.handleInput(NavEvent::UP, 0, 0, 1000);
-    TEST_ASSERT_EQUAL_size_t(0, s.convScroll());
+    TEST_ASSERT_EQUAL_size_t(0, s.nodeScroll());
 }
 
 void test_state_down_does_not_go_below_zero()
@@ -160,7 +160,7 @@ void test_state_down_does_not_go_below_zero()
     s.init(0);
     loadNConvs(s, 3);
     s.handleInput(NavEvent::DOWN, 0, 0, 1000); // already at top
-    TEST_ASSERT_EQUAL_size_t(0, s.convScroll());
+    TEST_ASSERT_EQUAL_size_t(0, s.nodeScroll());
 }
 
 // ---------------------------------------------------------------------------
@@ -172,11 +172,11 @@ void test_state_user_press_selects_different_row()
     UIState s;
     s.init(0);
     loadNConvs(s, 3);
-    // Row 1: touchY within [CONTENT_Y + CONV_ROW_H, CONTENT_Y + 2*CONV_ROW_H)
-    uint16_t y = (uint16_t)(CONTENT_Y + CONV_ROW_H + 5);
+    // Row 1: touchY within [CONTENT_Y + NODE_ROW_H, CONTENT_Y + 2*NODE_ROW_H)
+    uint16_t y = (uint16_t)(CONTENT_Y + NODE_ROW_H + 5);
     s.handleInput(NavEvent::USER_PRESS, y, 0, 500); // t >= SCROLL_SUPPRESS_MS
-    TEST_ASSERT_EQUAL_size_t(1, s.selectedConv());
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_LIST, (int)s.currentView()); // not opened
+    TEST_ASSERT_EQUAL_size_t(1, s.selectedNode());
+    TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView()); // not opened
 }
 
 void test_state_user_press_twice_opens_conv()
@@ -184,41 +184,41 @@ void test_state_user_press_twice_opens_conv()
     UIState s;
     s.init(0);
     loadNConvs(s, 3);
-    uint16_t y = (uint16_t)(CONTENT_Y + CONV_ROW_H + 5); // row 1
-    // First tap: select row 1 (selectedConv starts at 0, so row 1 != selected)
+    uint16_t y = (uint16_t)(CONTENT_Y + NODE_ROW_H + 5); // row 1
+    // First tap: select row 1 (selectedNode starts at 0, so row 1 != selected)
     s.handleInput(NavEvent::USER_PRESS, y, 0, 500);
-    TEST_ASSERT_EQUAL_size_t(1, s.selectedConv());
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_LIST, (int)s.currentView());
-    // Second tap: row == selectedConv → open
+    TEST_ASSERT_EQUAL_size_t(1, s.selectedNode());
+    TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
+    // Second tap: row == selectedNode → open
     s.handleInput(NavEvent::USER_PRESS, y, 0, 1000);
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_VIEW, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
 }
 
 void test_state_scroll_suppresses_user_press()
 {
     UIState s;
     s.init(0);
-    loadNConvs(s, VISIBLE_CONVS + 3);
+    loadNConvs(s, VISIBLE_NODES + 3);
 
     // First select row 1 (long before any scroll).
-    uint16_t y1 = (uint16_t)(CONTENT_Y + CONV_ROW_H + 5);
+    uint16_t y1 = (uint16_t)(CONTENT_Y + NODE_ROW_H + 5);
     s.handleInput(NavEvent::USER_PRESS, y1, 0, 500);
-    TEST_ASSERT_EQUAL_size_t(1, s.selectedConv());
+    TEST_ASSERT_EQUAL_size_t(1, s.selectedNode());
 
     // Scroll at t=1000.
     s.handleInput(NavEvent::UP, 0, 0, 1000);
-    size_t convScrollAfterUp = s.convScroll(); // > 0
+    size_t convScrollAfterUp = s.nodeScroll(); // > 0
 
     // USER_PRESS within suppress window (t=1000 + 399 = 1399) — should do nothing.
-    // After scroll, visible row 0 = convScrollAfterUp + 0 (which != selectedConv=1 if scroll > 1).
+    // After scroll, visible row 0 = convScrollAfterUp + 0 (which != selectedNode=1 if scroll > 1).
     uint16_t y0 = (uint16_t)(CONTENT_Y + 5); // visible row 0
     s.handleInput(NavEvent::USER_PRESS, y0, 0, 1399);
-    TEST_ASSERT_EQUAL_size_t(1, s.selectedConv()); // unchanged
+    TEST_ASSERT_EQUAL_size_t(1, s.selectedNode()); // unchanged
 
     // After suppress window (t=1400), the same tap should go through.
     s.handleInput(NavEvent::USER_PRESS, y0, 0, 1400);
     size_t expectedRow = convScrollAfterUp + 0;
-    TEST_ASSERT_EQUAL_size_t(expectedRow, s.selectedConv());
+    TEST_ASSERT_EQUAL_size_t(expectedRow, s.selectedNode());
 }
 
 // ---------------------------------------------------------------------------
@@ -230,10 +230,10 @@ void test_state_select_keyboard_opens_selected_conv()
     UIState s;
     s.init(0);
     loadNConvs(s, 3);
-    // touchY=0 < CONTENT_Y → keyboard Enter branch → opens selectedConv (0)
+    // touchY=0 < CONTENT_Y → keyboard Enter branch → opens selectedNode (0)
     s.handleInput(NavEvent::SELECT, 0, 0, 500);
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_VIEW, (int)s.currentView());
-    TEST_ASSERT_EQUAL_size_t(0, s.selectedConv());
+    TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
+    TEST_ASSERT_EQUAL_size_t(0, s.selectedNode());
 }
 
 void test_state_select_touch_opens_row_by_y()
@@ -241,11 +241,11 @@ void test_state_select_touch_opens_row_by_y()
     UIState s;
     s.init(0);
     loadNConvs(s, 3);
-    // Row 2: touchY in [CONTENT_Y + 2*CONV_ROW_H, CONTENT_Y + 3*CONV_ROW_H)
-    uint16_t y = (uint16_t)(CONTENT_Y + 2 * CONV_ROW_H + 5);
+    // Row 2: touchY in [CONTENT_Y + 2*NODE_ROW_H, CONTENT_Y + 3*NODE_ROW_H)
+    uint16_t y = (uint16_t)(CONTENT_Y + 2 * NODE_ROW_H + 5);
     s.handleInput(NavEvent::SELECT, y, 0, 500);
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_VIEW, (int)s.currentView());
-    TEST_ASSERT_EQUAL_size_t(2, s.selectedConv());
+    TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
+    TEST_ASSERT_EQUAL_size_t(2, s.selectedNode());
 }
 
 void test_state_open_conv_sets_needs_conv_load()
@@ -255,7 +255,7 @@ void test_state_open_conv_sets_needs_conv_load()
     loadNConvs(s, 3);
     s.clearNeedsRender();
     s.handleInput(NavEvent::SELECT, 0, 0, 500); // keyboard opens conv 0
-    TEST_ASSERT_TRUE(s.needsConvLoad());
+    TEST_ASSERT_TRUE(s.needsThreadLoad());
 }
 
 // ---------------------------------------------------------------------------
@@ -268,9 +268,9 @@ void test_state_back_from_conv_view_returns_to_list()
     s.init(0);
     loadNConvs(s, 3);
     s.handleInput(NavEvent::SELECT, 0, 0, 500);
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_VIEW, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
     s.handleInput(NavEvent::BACK, 0, 0, 1000);
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_LIST, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
 }
 
 void test_state_select_in_conv_view_opens_compose()
@@ -326,7 +326,7 @@ void test_state_back_on_empty_compose_cancels()
     // Buffer is empty; BACK should cancel compose.
     s.handleInput(NavEvent::BACK, 0, 0, 1500);
     TEST_ASSERT_FALSE(s.isComposing());
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_VIEW, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
 }
 
 void test_state_cancel_in_compose_clears_and_closes()
@@ -413,7 +413,7 @@ void test_state_any_input_wakes_from_sleep()
     TEST_ASSERT_FALSE(s.isSleeping());
     TEST_ASSERT_TRUE(s.needsRender());
     // The UP should not have navigated — wake consumes the event.
-    TEST_ASSERT_EQUAL_size_t(0, s.convScroll());
+    TEST_ASSERT_EQUAL_size_t(0, s.nodeScroll());
 }
 
 void test_state_message_received_wakes_from_sleep()
@@ -441,10 +441,10 @@ void test_state_message_received_in_conv_view_also_sets_conv_load()
     s.init(0);
     loadNConvs(s, 2);
     s.handleInput(NavEvent::SELECT, 0, 0, 500); // open conv 0
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_VIEW, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
     s.clearNeedsRender();
     s.onMessageReceived(1000);
-    TEST_ASSERT_TRUE(s.needsConvLoad());
+    TEST_ASSERT_TRUE(s.needsThreadLoad());
 }
 
 // ---------------------------------------------------------------------------
@@ -458,13 +458,13 @@ void test_state_cooldown_suppresses_user_press()
     loadNConvs(s, 3);
     s.onRenderDone(500); // cooldown ends at 500 + RENDER_COOLDOWN_MS = 1500
     // USER_PRESS at t=1000 is within cooldown → ignored.
-    uint16_t y = (uint16_t)(CONTENT_Y + CONV_ROW_H + 5); // row 1
+    uint16_t y = (uint16_t)(CONTENT_Y + NODE_ROW_H + 5); // row 1
     s.handleInput(NavEvent::USER_PRESS, y, 0, 1000);
-    TEST_ASSERT_EQUAL_size_t(0, s.selectedConv()); // unchanged
+    TEST_ASSERT_EQUAL_size_t(0, s.selectedNode()); // unchanged
     // USER_PRESS at t=1500 (cooldown boundary, not yet past) — still blocked.
     // t=1501 should go through.
     s.handleInput(NavEvent::USER_PRESS, y, 0, 1501);
-    TEST_ASSERT_EQUAL_size_t(1, s.selectedConv()); // now selected
+    TEST_ASSERT_EQUAL_size_t(1, s.selectedNode()); // now selected
 }
 
 // ---------------------------------------------------------------------------
@@ -477,7 +477,7 @@ void test_state_swipe_left_opens_system_menu()
     s.init(0);
     loadNConvs(s, 2);
     s.handleInput(NavEvent::LEFT, 0, 0, 500);
-    TEST_ASSERT_EQUAL_INT((int)View::SYSTEM_MENU, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::SETTINGS, (int)s.currentView());
     TEST_ASSERT_EQUAL_size_t(0, s.menuSelection()); // always resets to first button
 }
 
@@ -487,7 +487,7 @@ void test_state_swipe_right_opens_system_menu()
     s.init(0);
     loadNConvs(s, 2);
     s.handleInput(NavEvent::RIGHT, 0, 0, 500);
-    TEST_ASSERT_EQUAL_INT((int)View::SYSTEM_MENU, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::SETTINGS, (int)s.currentView());
 }
 
 void test_state_swipe_from_system_menu_returns_to_list()
@@ -496,9 +496,9 @@ void test_state_swipe_from_system_menu_returns_to_list()
     s.init(0);
     loadNConvs(s, 2);
     s.handleInput(NavEvent::LEFT, 0, 0, 500);
-    TEST_ASSERT_EQUAL_INT((int)View::SYSTEM_MENU, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::SETTINGS, (int)s.currentView());
     s.handleInput(NavEvent::LEFT, 0, 0, 1000);
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_LIST, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
 }
 
 void test_state_back_from_system_menu_returns_to_list()
@@ -508,7 +508,7 @@ void test_state_back_from_system_menu_returns_to_list()
     loadNConvs(s, 2);
     s.handleInput(NavEvent::LEFT, 0, 0, 500);
     s.handleInput(NavEvent::BACK, 0, 0, 1000);
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_LIST, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
 }
 
 void test_state_swipe_from_conv_view_returns_to_list()
@@ -517,9 +517,9 @@ void test_state_swipe_from_conv_view_returns_to_list()
     s.init(0);
     loadNConvs(s, 2);
     s.handleInput(NavEvent::SELECT, 0, 0, 500); // open conv
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_VIEW, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
     s.handleInput(NavEvent::LEFT, 0, 0, 1000);
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_LIST, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::NODE_LIST, (int)s.currentView());
 }
 
 // ---------------------------------------------------------------------------
@@ -599,7 +599,7 @@ void test_state_system_menu_two_tap_activates()
     loadNConvs(s, 1);
     s.handleInput(NavEvent::LEFT, 0, 0, 500); // open menu
     // Tap Restart row (button 1)
-    uint16_t y1 = (uint16_t)(CONTENT_Y + CONV_ROW_H + 5);
+    uint16_t y1 = (uint16_t)(CONTENT_Y + NODE_ROW_H + 5);
     s.handleInput(NavEvent::USER_PRESS, y1, 0, 1000); // selects Restart
     TEST_ASSERT_EQUAL_size_t(1, s.menuSelection());
     TEST_ASSERT_EQUAL_INT((int)PowerAction::NONE, (int)s.pendingPowerAction()); // not fired yet
@@ -634,7 +634,7 @@ void test_state_msg_scroll_up_moves_toward_older()
     s.handleInput(NavEvent::SELECT, 0, 0, 500); // open conv
     // Feed in enough messages to scroll
     ConvMsg msgs[5]{};
-    s.applyConvMessages(msgs, 5);
+    s.applyThreadMsgs(msgs, 5);
     TEST_ASSERT_EQUAL_size_t(0, s.msgScroll());
     s.handleInput(NavEvent::UP, 0, 0, 1000);
     TEST_ASSERT_EQUAL_size_t(1, s.msgScroll());
@@ -647,7 +647,7 @@ void test_state_msg_scroll_down_moves_toward_newer()
     loadNConvs(s, 1);
     s.handleInput(NavEvent::SELECT, 0, 0, 500);
     ConvMsg msgs[5]{};
-    s.applyConvMessages(msgs, 5);
+    s.applyThreadMsgs(msgs, 5);
     s.handleInput(NavEvent::UP, 0, 0, 1000);
     s.handleInput(NavEvent::UP, 0, 0, 1500);
     TEST_ASSERT_EQUAL_size_t(2, s.msgScroll());
@@ -662,7 +662,7 @@ void test_state_msg_scroll_does_not_go_below_zero()
     loadNConvs(s, 1);
     s.handleInput(NavEvent::SELECT, 0, 0, 500);
     ConvMsg msgs[3]{};
-    s.applyConvMessages(msgs, 3);
+    s.applyThreadMsgs(msgs, 3);
     s.handleInput(NavEvent::DOWN, 0, 0, 1000);
     TEST_ASSERT_EQUAL_size_t(0, s.msgScroll());
 }
@@ -674,7 +674,7 @@ void test_state_msg_scroll_does_not_exceed_msg_count()
     loadNConvs(s, 1);
     s.handleInput(NavEvent::SELECT, 0, 0, 500);
     ConvMsg msgs[3]{};
-    s.applyConvMessages(msgs, 3);
+    s.applyThreadMsgs(msgs, 3);
     // Max scroll is msgCount - 1 = 2
     s.handleInput(NavEvent::UP, 0, 0, 1000);
     s.handleInput(NavEvent::UP, 0, 0, 1500);
@@ -689,7 +689,7 @@ void test_state_send_resets_msg_scroll_to_bottom()
     loadNConvs(s, 1);
     s.handleInput(NavEvent::SELECT, 0, 0, 500);
     ConvMsg msgs[4]{};
-    s.applyConvMessages(msgs, 4);
+    s.applyThreadMsgs(msgs, 4);
     s.handleInput(NavEvent::UP, 0, 0, 1000);
     s.handleInput(NavEvent::UP, 0, 0, 1500);
     TEST_ASSERT_GREATER_THAN_size_t(0, s.msgScroll());
@@ -714,9 +714,9 @@ void test_state_mark_conv_unread_increments_count()
     UIState s;
     s.init(0);
     loadNConvs(s, 3);
-    s.markConvUnread(0);
+    s.markNodeUnread(0);
     TEST_ASSERT_EQUAL_size_t(1, s.unreadCount());
-    s.markConvUnread(2);
+    s.markNodeUnread(2);
     TEST_ASSERT_EQUAL_size_t(2, s.unreadCount());
 }
 
@@ -725,10 +725,10 @@ void test_state_open_conv_clears_unread()
     UIState s;
     s.init(0);
     loadNConvs(s, 3);
-    s.markConvUnread(0); // selectedConv starts at 0
+    s.markNodeUnread(0); // selectedNode starts at 0
     TEST_ASSERT_EQUAL_size_t(1, s.unreadCount());
     s.handleInput(NavEvent::SELECT, 0, 0, 500); // keyboard Enter opens conv 0
-    TEST_ASSERT_EQUAL_INT((int)View::CONV_VIEW, (int)s.currentView());
+    TEST_ASSERT_EQUAL_INT((int)View::MSG_THREAD, (int)s.currentView());
     TEST_ASSERT_EQUAL_size_t(0, s.unreadCount());
 }
 
@@ -736,17 +736,17 @@ void test_state_unread_migrated_across_rebuild()
 {
     UIState s;
     s.init(0);
-    ConvEntry list1[2];
+    NodeEntry list1[2];
     list1[0] = makeConv(true, 0, 0);
     list1[1] = makeConv(true, 1, 0);
-    s.applyConvList(list1, 2);
-    s.markConvUnread(1); // channel 1 at index 1 has unread
+    s.applyNodeList(list1, 2);
+    s.markNodeUnread(1); // channel 1 at index 1 has unread
 
     // Rebuild with reversed order — channel 1 is now at index 0
-    ConvEntry list2[2];
+    NodeEntry list2[2];
     list2[0] = makeConv(true, 1, 0);
     list2[1] = makeConv(true, 0, 0);
-    s.applyConvList(list2, 2);
+    s.applyNodeList(list2, 2);
 
     TEST_ASSERT_EQUAL_size_t(1, s.unreadCount()); // flag followed channel 1 to its new index
 }

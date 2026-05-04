@@ -52,21 +52,21 @@ static ConvMsg makeDm(uint32_t from, uint32_t to, uint32_t ts, const char *text)
 }
 
 // ---------------------------------------------------------------------------
-// buildConvList tests
+// buildNodeList tests
 // ---------------------------------------------------------------------------
 
 void test_empty_messages_produces_no_convs()
 {
-    ConvEntry out[8];
-    size_t n = buildConvList(nullptr, 0, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(nullptr, 0, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(0, n);
 }
 
 void test_single_channel_message_produces_one_conv()
 {
     ConvMsg msgs[] = { makeChannel(0, PEER1, 100, "hello") };
-    ConvEntry out[8];
-    size_t n = buildConvList(msgs, 1, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(msgs, 1, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(1, n);
     TEST_ASSERT_TRUE(out[0].isChannel);
     TEST_ASSERT_EQUAL_UINT8(0, out[0].channelIndex);
@@ -80,8 +80,8 @@ void test_two_channel_messages_same_channel_produces_one_conv()
         makeChannel(0, PEER1, 200, "world"),
         makeChannel(0, PEER2, 100, "hello"),
     };
-    ConvEntry out[8];
-    size_t n = buildConvList(msgs, 2, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(msgs, 2, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(1, n);
     // First message (newest-first order) provides the preview
     TEST_ASSERT_EQUAL_STRING("world", out[0].preview);
@@ -94,8 +94,8 @@ void test_two_different_channels_produce_two_convs()
         makeChannel(0, PEER1, 100, "ch0 msg"),
         makeChannel(1, PEER1, 200, "ch1 msg"),
     };
-    ConvEntry out[8];
-    size_t n = buildConvList(msgs, 2, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(msgs, 2, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(2, n);
     TEST_ASSERT_TRUE(out[0].isChannel);
     TEST_ASSERT_TRUE(out[1].isChannel);
@@ -105,8 +105,8 @@ void test_two_different_channels_produce_two_convs()
 void test_dm_from_peer_produces_one_conv_keyed_on_peer()
 {
     ConvMsg msgs[] = { makeDm(PEER1, MY, 100, "hi") };
-    ConvEntry out[8];
-    size_t n = buildConvList(msgs, 1, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(msgs, 1, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(1, n);
     TEST_ASSERT_FALSE(out[0].isChannel);
     TEST_ASSERT_EQUAL_UINT32(PEER1, out[0].peerNum);
@@ -115,8 +115,8 @@ void test_dm_from_peer_produces_one_conv_keyed_on_peer()
 void test_dm_sent_by_me_to_peer_produces_one_conv_keyed_on_peer()
 {
     ConvMsg msgs[] = { makeDm(MY, PEER1, 100, "hey") };
-    ConvEntry out[8];
-    size_t n = buildConvList(msgs, 1, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(msgs, 1, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(1, n);
     TEST_ASSERT_FALSE(out[0].isChannel);
     TEST_ASSERT_EQUAL_UINT32(PEER1, out[0].peerNum);
@@ -128,8 +128,8 @@ void test_dm_both_directions_same_peer_produces_one_conv()
         makeDm(PEER1, MY, 100, "hello"),
         makeDm(MY, PEER1, 200, "reply"),
     };
-    ConvEntry out[8];
-    size_t n = buildConvList(msgs, 2, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(msgs, 2, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(1, n);
     TEST_ASSERT_EQUAL_UINT32(PEER1, out[0].peerNum);
 }
@@ -140,8 +140,8 @@ void test_mixed_channel_and_dm_produces_two_convs()
         makeChannel(0, PEER1, 100, "broadcast"),
         makeDm(PEER1, MY, 200, "direct"),
     };
-    ConvEntry out[8];
-    size_t n = buildConvList(msgs, 2, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(msgs, 2, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(2, n);
 }
 
@@ -152,13 +152,13 @@ void test_maxOut_limits_output()
         makeChannel(1, PEER1, 200, "ch1"),
         makeChannel(2, PEER1, 300, "ch2"),
     };
-    ConvEntry out[2];
-    size_t n = buildConvList(msgs, 3, MY, out, 2);
+    NodeEntry out[2];
+    size_t n = buildNodeList(msgs, 3, MY, out, 2);
     TEST_ASSERT_EQUAL_size_t(2, n);
 }
 
 // ---------------------------------------------------------------------------
-// filterConvMessages tests
+// filterThreadMsgs tests
 // ---------------------------------------------------------------------------
 
 void test_filter_returns_only_matching_channel_messages()
@@ -168,12 +168,12 @@ void test_filter_returns_only_matching_channel_messages()
         makeChannel(1, PEER1, 200, "ch1 a"),
         makeChannel(0, PEER2, 300, "ch0 b"),
     };
-    ConvEntry conv{};
+    NodeEntry conv{};
     conv.isChannel    = true;
     conv.channelIndex = 0;
 
     ConvMsg out[8];
-    size_t n = filterConvMessages(msgs, 3, MY, conv, out, 8);
+    size_t n = filterThreadMsgs(msgs, 3, MY, conv, out, 8);
     TEST_ASSERT_EQUAL_size_t(2, n);
     TEST_ASSERT_EQUAL_STRING("ch0 a", out[0].text);
     TEST_ASSERT_EQUAL_STRING("ch0 b", out[1].text);
@@ -186,12 +186,12 @@ void test_filter_returns_only_matching_dm_messages()
         makeDm(MY,    PEER1, 200, "me to peer1"),
         makeDm(PEER2, MY,    300, "peer2 to me"),
     };
-    ConvEntry conv{};
+    NodeEntry conv{};
     conv.isChannel = false;
     conv.peerNum   = PEER1;
 
     ConvMsg out[8];
-    size_t n = filterConvMessages(msgs, 3, MY, conv, out, 8);
+    size_t n = filterThreadMsgs(msgs, 3, MY, conv, out, 8);
     TEST_ASSERT_EQUAL_size_t(2, n);
     TEST_ASSERT_EQUAL_STRING("peer1 to me", out[0].text);
     TEST_ASSERT_EQUAL_STRING("me to peer1", out[1].text);
@@ -199,12 +199,12 @@ void test_filter_returns_only_matching_dm_messages()
 
 void test_filter_empty_store_returns_zero()
 {
-    ConvEntry conv{};
+    NodeEntry conv{};
     conv.isChannel    = true;
     conv.channelIndex = 0;
 
     ConvMsg out[8];
-    size_t n = filterConvMessages(nullptr, 0, MY, conv, out, 8);
+    size_t n = filterThreadMsgs(nullptr, 0, MY, conv, out, 8);
     TEST_ASSERT_EQUAL_size_t(0, n);
 }
 
@@ -215,12 +215,12 @@ void test_filter_maxOut_limits_output()
         makeChannel(0, PEER1, 200, "b"),
         makeChannel(0, PEER1, 300, "c"),
     };
-    ConvEntry conv{};
+    NodeEntry conv{};
     conv.isChannel    = true;
     conv.channelIndex = 0;
 
     ConvMsg out[2];
-    size_t n = filterConvMessages(msgs, 3, MY, conv, out, 2);
+    size_t n = filterThreadMsgs(msgs, 3, MY, conv, out, 2);
     TEST_ASSERT_EQUAL_size_t(2, n);
 }
 
@@ -238,8 +238,8 @@ void test_conv_preview_comes_from_first_input_message()
         makeChannel(0, PEER1, 200, "older"),
         makeChannel(0, PEER1, 100, "oldest"),
     };
-    ConvEntry out[4];
-    size_t n = buildConvList(msgs, 3, MY, out, 4);
+    NodeEntry out[4];
+    size_t n = buildNodeList(msgs, 3, MY, out, 4);
     TEST_ASSERT_EQUAL_size_t(1, n);
     // Preview should come from the first (newest) message
     TEST_ASSERT_EQUAL_STRING("newest", out[0].preview);
@@ -253,8 +253,8 @@ void test_two_peers_produce_separate_dm_convs()
         makeDm(PEER1, MY, 100, "from peer1"),
         makeDm(PEER2, MY, 200, "from peer2"),
     };
-    ConvEntry out[8];
-    size_t n = buildConvList(msgs, 2, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(msgs, 2, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(2, n);
     TEST_ASSERT_EQUAL_UINT32(PEER1, out[0].peerNum);
     TEST_ASSERT_EQUAL_UINT32(PEER2, out[1].peerNum);
@@ -268,8 +268,8 @@ void test_outgoing_and_incoming_dm_collapse_to_one_conv()
         makeDm(MY,    PEER1, 300, "my reply"),   // sent by me
         makeDm(PEER1, MY,    100, "their msg"),  // received from peer
     };
-    ConvEntry out[8];
-    size_t n = buildConvList(msgs, 2, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(msgs, 2, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(1, n);
     TEST_ASSERT_FALSE(out[0].isChannel);
     TEST_ASSERT_EQUAL_UINT32(PEER1, out[0].peerNum);
@@ -283,8 +283,8 @@ void test_channel_and_dm_with_same_index_do_not_collide()
         makeDm(PEER1, MY,    200, "dm from peer1"), // peerNum happens to equal 1 if PEER1==1
     };
     // Use a peer whose num != 1 to keep the test straightforward
-    ConvEntry out[8];
-    size_t n = buildConvList(msgs, 2, MY, out, 8);
+    NodeEntry out[8];
+    size_t n = buildNodeList(msgs, 2, MY, out, 8);
     TEST_ASSERT_EQUAL_size_t(2, n);
     // One must be a channel, one a DM
     bool hasChannel = false, hasDm = false;
@@ -296,7 +296,7 @@ void test_channel_and_dm_with_same_index_do_not_collide()
     TEST_ASSERT_TRUE(hasDm);
 }
 
-// filterConvMessages preserves chronological (input) order.
+// filterThreadMsgs preserves chronological (input) order.
 void test_filter_preserves_message_order()
 {
     ConvMsg msgs[] = {
@@ -304,12 +304,12 @@ void test_filter_preserves_message_order()
         makeChannel(0, PEER2, 200, "second"),
         makeChannel(0, PEER1, 300, "third"),
     };
-    ConvEntry conv{};
+    NodeEntry conv{};
     conv.isChannel    = true;
     conv.channelIndex = 0;
 
     ConvMsg out[8];
-    size_t n = filterConvMessages(msgs, 3, MY, conv, out, 8);
+    size_t n = filterThreadMsgs(msgs, 3, MY, conv, out, 8);
     TEST_ASSERT_EQUAL_size_t(3, n);
     TEST_ASSERT_EQUAL_UINT32(100, out[0].timestamp);
     TEST_ASSERT_EQUAL_UINT32(200, out[1].timestamp);
@@ -324,12 +324,12 @@ void test_filter_includes_my_outgoing_dms()
         makeDm(PEER1, MY,    200, "they said"),
         makeDm(PEER2, MY,    300, "other peer"),
     };
-    ConvEntry conv{};
+    NodeEntry conv{};
     conv.isChannel = false;
     conv.peerNum   = PEER1;
 
     ConvMsg out[8];
-    size_t n = filterConvMessages(msgs, 3, MY, conv, out, 8);
+    size_t n = filterThreadMsgs(msgs, 3, MY, conv, out, 8);
     TEST_ASSERT_EQUAL_size_t(2, n);
     TEST_ASSERT_EQUAL_STRING("i said",    out[0].text);
     TEST_ASSERT_EQUAL_STRING("they said", out[1].text);
@@ -338,19 +338,19 @@ void test_filter_includes_my_outgoing_dms()
 // Empty input → zero output regardless of conv spec.
 void test_filter_null_msgs_returns_zero()
 {
-    ConvEntry conv{};
+    NodeEntry conv{};
     conv.isChannel    = true;
     conv.channelIndex = 0;
     ConvMsg out[4];
-    TEST_ASSERT_EQUAL_size_t(0, filterConvMessages(nullptr, 0, MY, conv, out, 4));
+    TEST_ASSERT_EQUAL_size_t(0, filterThreadMsgs(nullptr, 0, MY, conv, out, 4));
 }
 
 // ---------------------------------------------------------------------------
 // User journey tests
 //
 // Each test simulates a realistic sequence of events a user would experience
-// and verifies the resulting model state.  They exercise buildConvList +
-// filterConvMessages together and encode the invariants that matter most for
+// and verifies the resulting model state.  They exercise buildNodeList +
+// filterThreadMsgs together and encode the invariants that matter most for
 // correct UI behaviour.
 // ---------------------------------------------------------------------------
 
@@ -359,8 +359,8 @@ void test_filter_null_msgs_returns_zero()
 void test_journey_incoming_dm_appears_in_list()
 {
     ConvMsg msgs[] = { makeDm(PEER1, MY, 500, "hey there") };
-    ConvEntry convs[8];
-    size_t n = buildConvList(msgs, 1, MY, convs, 8);
+    NodeEntry convs[8];
+    size_t n = buildNodeList(msgs, 1, MY, convs, 8);
     TEST_ASSERT_EQUAL_size_t(1, n);
     TEST_ASSERT_FALSE(convs[0].isChannel);
     TEST_ASSERT_EQUAL_UINT32(PEER1, convs[0].peerNum);
@@ -372,8 +372,8 @@ void test_journey_incoming_dm_appears_in_list()
 void test_journey_channel_message_appears_in_list()
 {
     ConvMsg msgs[] = { makeChannel(0, PEER1, 100, "hello channel") };
-    ConvEntry convs[8];
-    size_t n = buildConvList(msgs, 1, MY, convs, 8);
+    NodeEntry convs[8];
+    size_t n = buildNodeList(msgs, 1, MY, convs, 8);
     TEST_ASSERT_EQUAL_size_t(1, n);
     TEST_ASSERT_TRUE(convs[0].isChannel);
     TEST_ASSERT_EQUAL_UINT8(0, convs[0].channelIndex);
@@ -387,14 +387,14 @@ void test_journey_reanchor_after_new_message_reorders_list()
 {
     // Initial state: only PEER1 has messaged us.
     ConvMsg msgs_v1[] = { makeDm(PEER1, MY, 100, "first") };
-    ConvEntry convs[8];
-    size_t n = buildConvList(msgs_v1, 1, MY, convs, 8);
+    NodeEntry convs[8];
+    size_t n = buildNodeList(msgs_v1, 1, MY, convs, 8);
     TEST_ASSERT_EQUAL_size_t(1, n);
 
-    // User opens PEER1's conversation (selectedConv = 0).
-    size_t selectedConv  = 0;
-    uint32_t savedPeer   = convs[selectedConv].peerNum;  // PEER1
-    bool savedIsChannel  = convs[selectedConv].isChannel;
+    // User opens PEER1's conversation (selectedNode = 0).
+    size_t selectedNode  = 0;
+    uint32_t savedPeer   = convs[selectedNode].peerNum;  // PEER1
+    bool savedIsChannel  = convs[selectedNode].isChannel;
     TEST_ASSERT_EQUAL_UINT32(PEER1, savedPeer);
 
     // PEER2 sends a message — pass newest-first so PEER2 is first.
@@ -402,24 +402,24 @@ void test_journey_reanchor_after_new_message_reorders_list()
         makeDm(PEER2, MY, 200, "new message"),
         makeDm(PEER1, MY, 100, "first"),
     };
-    n = buildConvList(msgs_v2, 2, MY, convs, 8);
+    n = buildNodeList(msgs_v2, 2, MY, convs, 8);
     TEST_ASSERT_EQUAL_size_t(2, n);
 
     // Re-anchor: find PEER1 in the new list (mirrors UIThread::rebuildConvList).
     for (size_t i = 0; i < n; i++) {
         if (!savedIsChannel && !convs[i].isChannel && convs[i].peerNum == savedPeer) {
-            selectedConv = i;
+            selectedNode = i;
             break;
         }
     }
 
-    // selectedConv must still point to PEER1, not to PEER2.
-    TEST_ASSERT_FALSE(convs[selectedConv].isChannel);
-    TEST_ASSERT_EQUAL_UINT32(PEER1, convs[selectedConv].peerNum);
+    // selectedNode must still point to PEER1, not to PEER2.
+    TEST_ASSERT_FALSE(convs[selectedNode].isChannel);
+    TEST_ASSERT_EQUAL_UINT32(PEER1, convs[selectedNode].peerNum);
 }
 
 // Journey: user sends a reply to PEER1; after rebuild the conversation list
-// reorders (PEER1 moves to top) but selectedConv still resolves to PEER1.
+// reorders (PEER1 moves to top) but selectedNode still resolves to PEER1.
 void test_journey_reanchor_after_own_reply()
 {
     // PEER2 messaged first, then PEER1 — so PEER1 is at top (newest-first).
@@ -427,14 +427,14 @@ void test_journey_reanchor_after_own_reply()
         makeDm(PEER1, MY, 200, "peer1 msg"),
         makeDm(PEER2, MY, 100, "peer2 msg"),
     };
-    ConvEntry convs[8];
-    size_t n = buildConvList(msgs_v1, 2, MY, convs, 8);
+    NodeEntry convs[8];
+    size_t n = buildNodeList(msgs_v1, 2, MY, convs, 8);
     // PEER1 is first (index 0), PEER2 second (index 1).
     TEST_ASSERT_EQUAL_UINT32(PEER1, convs[0].peerNum);
 
     // User is viewing PEER2 (index 1).
-    size_t selectedConv = 1;
-    uint32_t savedPeer  = convs[selectedConv].peerNum;  // PEER2
+    size_t selectedNode = 1;
+    uint32_t savedPeer  = convs[selectedNode].peerNum;  // PEER2
     bool savedIsChannel = false;
 
     // User replies to PEER2 — PEER2's message is now newest.
@@ -443,19 +443,19 @@ void test_journey_reanchor_after_own_reply()
         makeDm(PEER1, MY,  200, "peer1 msg"),
         makeDm(PEER2, MY,  100, "peer2 msg"),
     };
-    n = buildConvList(msgs_v2, 3, MY, convs, 8);
+    n = buildNodeList(msgs_v2, 3, MY, convs, 8);
     // PEER2 should now be first.
     TEST_ASSERT_EQUAL_UINT32(PEER2, convs[0].peerNum);
 
     // Re-anchor.
     for (size_t i = 0; i < n; i++) {
         if (!savedIsChannel && !convs[i].isChannel && convs[i].peerNum == savedPeer) {
-            selectedConv = i;
+            selectedNode = i;
             break;
         }
     }
-    TEST_ASSERT_EQUAL_UINT32(PEER2, convs[selectedConv].peerNum);
-    TEST_ASSERT_EQUAL_STRING("my reply", convs[selectedConv].preview);
+    TEST_ASSERT_EQUAL_UINT32(PEER2, convs[selectedNode].peerNum);
+    TEST_ASSERT_EQUAL_STRING("my reply", convs[selectedNode].preview);
 }
 
 // Journey: user views a DM conversation — only that peer's messages are shown,
@@ -468,12 +468,12 @@ void test_journey_open_dm_shows_full_thread()
         makeDm(PEER2, MY,    150, "unrelated"),
         makeDm(PEER1, MY,    300, "how are you"),
     };
-    ConvEntry conv{};
+    NodeEntry conv{};
     conv.isChannel = false;
     conv.peerNum   = PEER1;
 
     ConvMsg out[8];
-    size_t n = filterConvMessages(msgs, 4, MY, conv, out, 8);
+    size_t n = filterThreadMsgs(msgs, 4, MY, conv, out, 8);
     TEST_ASSERT_EQUAL_size_t(3, n);
     TEST_ASSERT_EQUAL_STRING("hi",          out[0].text);
     TEST_ASSERT_EQUAL_STRING("hey back",    out[1].text);
@@ -492,12 +492,12 @@ void test_journey_open_channel_shows_all_senders()
         makeChannel(0, MY,    300, "msg from me"),
         makeDm(PEER1, MY,     400, "private"),
     };
-    ConvEntry conv{};
+    NodeEntry conv{};
     conv.isChannel    = true;
     conv.channelIndex = 0;
 
     ConvMsg out[8];
-    size_t n = filterConvMessages(msgs, 4, MY, conv, out, 8);
+    size_t n = filterThreadMsgs(msgs, 4, MY, conv, out, 8);
     TEST_ASSERT_EQUAL_size_t(3, n);
     TEST_ASSERT_EQUAL_STRING("msg from peer1", out[0].text);
     TEST_ASSERT_EQUAL_STRING("msg from peer2", out[1].text);
@@ -514,8 +514,8 @@ void test_journey_preview_tracks_latest_message()
         makeDm(PEER1, MY,    200, "sounds good"),
         makeDm(MY,    PEER1, 100, "want to meet?"),
     };
-    ConvEntry convs[4];
-    size_t n = buildConvList(msgs, 3, MY, convs, 4);
+    NodeEntry convs[4];
+    size_t n = buildNodeList(msgs, 3, MY, convs, 4);
     TEST_ASSERT_EQUAL_size_t(1, n);
     TEST_ASSERT_EQUAL_STRING("see you later", convs[0].preview);
     TEST_ASSERT_EQUAL_UINT32(300, convs[0].lastTs);
