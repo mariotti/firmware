@@ -30,15 +30,14 @@ void variant_shutdown() __attribute__((weak));
 void variant_shutdown() {}
 
 #if !defined(CONFIG_IDF_TARGET_ESP32S2) && !MESHTASTIC_EXCLUDE_BLUETOOTH
+
 void setBluetoothEnable(bool enable)
 {
 #ifdef USE_WS5500
     if ((config.bluetooth.enabled == true) && (config.network.wifi_enabled == false))
+#elif HAS_WIFI
+    if (!isWifiAvailable() && config.bluetooth.enabled == true)
 #else
-    // ESP32 / ESP32-S3 support WiFi + BT coexistence via the ESP-IDF time-division
-    // arbitration module (CONFIG_ESP32_WIFI_SW_COEXIST_ENABLE, enabled by default in
-    // Arduino ESP32). The previous HAS_WIFI guard that blocked BT whenever WiFi was
-    // configured was overly conservative — devices with both stacks active work correctly.
     if (config.bluetooth.enabled == true)
 #endif
     {
@@ -189,6 +188,8 @@ void esp32Setup()
 void esp32Loop()
 {
     esp_task_wdt_reset(); // service our app level watchdog
+#if !defined(CONFIG_IDF_TARGET_ESP32S2) && !MESHTASTIC_EXCLUDE_BLUETOOTH && HAS_WIFI
+#endif
 
     // for debug printing
     // radio.radioIf.canSleep();
