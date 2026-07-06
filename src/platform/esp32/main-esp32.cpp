@@ -52,6 +52,14 @@ void setBluetoothEnable(bool enable)
         // BLE advertising automatically stops when MCU enters light-sleep(?)
         // For deep-sleep, shutdown hardware with nimbleBluetooth->deinit(). Requires reboot to reverse
     }
+#if defined(USE_WS5500) || defined(USE_CH390D) || HAS_WIFI
+    else if (enable && config.bluetooth.enabled) {
+        // Bluetooth is enabled in config but cannot be started: the BLE stack is
+        // never brought up while WiFi/Ethernet networking is enabled. Without this
+        // warning the radio is silently absent and the device never advertises.
+        LOG_WARN("Bluetooth not started: WiFi/Ethernet is enabled and BT/WiFi are mutually exclusive on ESP32");
+    }
+#endif
 }
 #else
 void setBluetoothEnable(bool enable) {}
